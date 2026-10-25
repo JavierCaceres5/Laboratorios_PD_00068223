@@ -11,7 +11,6 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -24,31 +23,27 @@ import java.awt.datatransfer.StringSelection;
 
 public class Window extends JFrame {
 
-    private static final String[] EJEMPLOS = {
-            "x", "log(x)", "3*x^2", "2*x^3"
-    };
+    private static final String NUMERO = "-?\\d+(\\.\\d+)?";
 
-    private final TextField txtEntrada = new TextField("Ej: 5*x^2");
-    private final TextField txtPunto = new TextField("Ej: 2", 4);
-    private final TextField txtLimA = new TextField("0", 4);
-    private final TextField txtLimB = new TextField("1", 4);
+    private final TextField txtA = new TextField("Ej: 8");
+    private final TextField txtB = new TextField("Ej: 2");
     private final PanelResult panelResultado = new PanelResult();
     private final JLabel lblEstado = new JLabel(" ");
 
     public Window(Connection motor) {
-        super("Cálculo simbólico en Prolog");
+        super("Calculadora en Prolog");
 
-        txtEntrada.addActionListener(e -> ejecutar(motor, "d"));
+        txtB.addActionListener(e -> ejecutar(motor, "suma", "+"));
 
         JPanel contenido = new JPanel();
         contenido.setLayout(new BoxLayout(contenido, BoxLayout.Y_AXIS));
         contenido.setOpaque(false);
-        agregar(contenido, etiqueta("Función f(x)"), 6);
-        agregar(contenido, txtEntrada, 8);
-        agregar(contenido, crearEjemplos(), 18);
+        agregar(contenido, etiqueta("Número A"), 6);
+        agregar(contenido, txtA, 12);
+        agregar(contenido, etiqueta("Número B"), 6);
+        agregar(contenido, txtB, 18);
         agregar(contenido, crearBotones(motor), 22);
-        agregar(contenido, panelResultado, 16);
-        agregar(contenido, crearEvaluacionNumerica(motor), 10);
+        agregar(contenido, panelResultado, 10);
         agregar(contenido, crearPie(), 0);
 
         JPanel raiz = new JPanel(new BorderLayout(0, 20));
@@ -69,11 +64,11 @@ public class Window extends JFrame {
     // ------------------------------------------------------------
 
     private JPanel crearEncabezado() {
-        JLabel titulo = new JLabel("Cálculo simbólico");
+        JLabel titulo = new JLabel("Calculadora básica");
         titulo.setFont(Theme.sans(Font.BOLD, 24));
         titulo.setForeground(Theme.TEXT);
 
-        JLabel subtitulo = new JLabel("Derivadas e integrales resueltas con reglas en Prolog");
+        JLabel subtitulo = new JLabel("Suma, resta, multiplicación y división resueltas con reglas en Prolog");
         subtitulo.setFont(Theme.sans(Font.PLAIN, 13));
         subtitulo.setForeground(Theme.MUTED);
 
@@ -86,69 +81,22 @@ public class Window extends JFrame {
         return p;
     }
 
-    private JPanel crearEjemplos() {
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        p.setOpaque(false);
-
-        JLabel lbl = new JLabel("Ejemplos:");
-        lbl.setForeground(Theme.MUTED);
-        lbl.setFont(Theme.sans(Font.PLAIN, 12));
-        p.add(lbl);
-
-        for (String ej : EJEMPLOS) {
-            Buttons chip = new Buttons(ej, Theme.CARD, Theme.TEXT, 12, 6, 11);
-            chip.addActionListener(e -> {
-                txtEntrada.setText(ej);
-                txtEntrada.requestFocusInWindow();
-            });
-            p.add(chip);
-        }
-        return p;
-    }
-
     private JPanel crearBotones(Connection motor) {
-        Buttons btnDerivar = new Buttons("Derivar", Theme.BLUE, Theme.BG, 26, 11, 14);
-        Buttons btnIntegrar = new Buttons("Integrar", Theme.GREEN, Theme.BG, 26, 11, 14);
-        btnDerivar.addActionListener(e -> ejecutar(motor, "d"));
-        btnIntegrar.addActionListener(e -> ejecutar(motor, "s"));
+        Buttons btnSuma = new Buttons("+", Theme.BLUE, Theme.BG, 26, 11, 16);
+        Buttons btnResta = new Buttons("−", Theme.GREEN, Theme.BG, 26, 11, 16);
+        Buttons btnMulti = new Buttons("×", Theme.AMBER, Theme.BG, 26, 11, 16);
+        Buttons btnDiv = new Buttons("÷", Theme.RED, Theme.BG, 26, 11, 16);
+        btnSuma.addActionListener(e -> ejecutar(motor, "suma", "+"));
+        btnResta.addActionListener(e -> ejecutar(motor, "resta", "−"));
+        btnMulti.addActionListener(e -> ejecutar(motor, "multiplicacion", "×"));
+        btnDiv.addActionListener(e -> ejecutar(motor, "division", "÷"));
 
         JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         p.setOpaque(false);
-        p.add(btnDerivar);
-        p.add(btnIntegrar);
-        return p;
-    }
-
-    private JPanel crearEvaluacionNumerica(Connection motor) {
-        JPanel p = new JPanel();
-        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-        p.setOpaque(false);
-
-        JLabel lbl = new JLabel("Evaluación numérica");
-        lbl.setFont(Theme.sans(Font.BOLD, 12));
-        lbl.setForeground(Theme.MUTED);
-        agregar(p, lbl, 6);
-
-        JPanel filaPunto = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        filaPunto.setOpaque(false);
-        filaPunto.add(new JLabel("x ="){{ setForeground(Theme.MUTED); }});
-        filaPunto.add(txtPunto);
-        Buttons btnPunto = new Buttons("Derivada en punto", Theme.CARD, Theme.TEXT, 14, 8, 12);
-        btnPunto.addActionListener(e -> evaluarDerivadaEnPunto(motor));
-        filaPunto.add(btnPunto);
-        agregar(p, filaPunto, 6);
-
-        JPanel filaArea = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        filaArea.setOpaque(false);
-        filaArea.add(new JLabel("a ="){{ setForeground(Theme.MUTED); }});
-        filaArea.add(txtLimA);
-        filaArea.add(new JLabel("b ="){{ setForeground(Theme.MUTED); }});
-        filaArea.add(txtLimB);
-        Buttons btnArea = new Buttons("Área [a, b]", Theme.CARD, Theme.TEXT, 14, 8, 12);
-        btnArea.addActionListener(e -> calcularAreaEntreLimites(motor));
-        filaArea.add(btnArea);
-        agregar(p, filaArea, 0);
-
+        p.add(btnSuma);
+        p.add(btnResta);
+        p.add(btnMulti);
+        p.add(btnDiv);
         return p;
     }
 
@@ -170,58 +118,25 @@ public class Window extends JFrame {
     // Lógica
     // ------------------------------------------------------------
 
-    private void ejecutar(Connection motor, String pred) {
-        String entrada = txtEntrada.getText().trim();
-        String nombre = pred.equals("d") ? "Derivada" : "Integral";
-        panelResultado.setTitulo(nombre + " de f(x)");
+    private void ejecutar(Connection motor, String pred, String simbolo) {
+        String a = txtA.getText().trim();
+        String b = txtB.getText().trim();
+        panelResultado.setTitulo("Resultado");
 
-        if (entrada.isEmpty()) {
-            mostrar("", "Escribí una función primero.", Theme.AMBER);
+        if (!a.matches(NUMERO) || !b.matches(NUMERO)) {
+            mostrar("", "Ingresá dos números válidos.", Theme.AMBER);
             return;
         }
         try {
-            String resultado = motor.consultar(pred, entrada);
+            String resultado = motor.operar(pred, a, b);
             if (resultado.startsWith("Sin solución")) {
-                mostrar("", resultado, Theme.AMBER);
+                String msg = pred.equals("division") ? "No se puede dividir entre 0." : resultado;
+                mostrar("", msg, Theme.AMBER);
             } else {
-                mostrar(resultado, "Listo", Theme.GREEN);
+                mostrar(a + " " + simbolo + " " + b + " = " + resultado, "Listo", Theme.GREEN);
             }
         } catch (Exception ex) {
-            mostrar("", "Expresión inválida: " + ex.getMessage(), Theme.RED);
-        }
-    }
-
-    private void evaluarDerivadaEnPunto(Connection motor) {
-        String entrada = txtEntrada.getText().trim();
-        panelResultado.setTitulo("Derivada evaluada en un punto");
-        try {
-            double valor = Double.parseDouble(txtPunto.getText().trim());
-            String derivada = motor.consultar("d", entrada);
-            if (derivada.startsWith("Sin solución")) {
-                mostrar("", derivada, Theme.AMBER);
-                return;
-            }
-            double resultado = motor.evaluarEnPunto(derivada, valor);
-            mostrar("f'(" + valor + ") = " + resultado, "Listo", Theme.GREEN);
-        } catch (NumberFormatException ex) {
-            mostrar("", "Ingresá un valor numérico para x.", Theme.AMBER);
-        } catch (Exception ex) {
-            mostrar("", "No se pudo evaluar: " + ex.getMessage(), Theme.RED);
-        }
-    }
-
-    private void calcularAreaEntreLimites(Connection motor) {
-        String entrada = txtEntrada.getText().trim();
-        panelResultado.setTitulo("Área bajo la curva");
-        try {
-            double a = Double.parseDouble(txtLimA.getText().trim());
-            double b = Double.parseDouble(txtLimB.getText().trim());
-            double area = motor.calcularArea(entrada, a, b);
-            mostrar("Área entre " + a + " y " + b + " = " + area, "Listo", Theme.GREEN);
-        } catch (NumberFormatException ex) {
-            mostrar("", "Ingresá valores numéricos para a y b.", Theme.AMBER);
-        } catch (Exception ex) {
-            mostrar("", "No se pudo calcular: " + ex.getMessage(), Theme.RED);
+            mostrar("", "Error: " + ex.getMessage(), Theme.RED);
         }
     }
 
